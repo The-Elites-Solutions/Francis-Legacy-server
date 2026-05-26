@@ -30,7 +30,6 @@ router.get('/audit-log', sessionAuth, requireAdmin, adminController.getAuditLog)
 
 router.post('/users/:id/reset-password', sessionAuth, requireAdmin, adminController.resetUserPassword);
 
-router.post('/family-members/:id/reset-password', sessionAuth, requireAdmin, adminController.resetFamilyMemberPassword);
 
 router.get('/storage-stats', sessionAuth, requireAdmin, adminController.getStorageStats);
 router.get('/imagekit-stats', sessionAuth, requireAdmin, adminController.getImageKitStats);
