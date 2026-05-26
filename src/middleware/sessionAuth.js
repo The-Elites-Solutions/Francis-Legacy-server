@@ -9,7 +9,9 @@ const sessionAuth = async (req, res, next) => {
     }
 
     // Debug logging - check what token we're working with
-    console.log(`🔍 SessionAuth Debug - Token: ${sessionToken.substring(0, 12)}...`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🔍 SessionAuth Debug - Token: ${sessionToken.substring(0, 12)}...`);
+    }
 
     // Determine session type from token prefix to avoid collision checks
     let session = null;
@@ -26,7 +28,9 @@ const sessionAuth = async (req, res, next) => {
       if (adminSessionResult.rows.length > 0) {
         session = adminSessionResult.rows[0];
         sessionType = 'admin';
-        console.log(`🔍 SessionAuth Debug - Found admin session for user: ${session.user_id}`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`🔍 SessionAuth Debug - Found admin session for user: ${session.user_id}`);
+        }
       }
     } else if (sessionToken.startsWith('member_')) {
       // Family member session - only check family member table
@@ -39,11 +43,15 @@ const sessionAuth = async (req, res, next) => {
       if (familySessionResult.rows.length > 0) {
         session = familySessionResult.rows[0];
         sessionType = 'family_member';
-        console.log(`🔍 SessionAuth Debug - Found family member session for user: ${session.user_id}`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`🔍 SessionAuth Debug - Found family member session for user: ${session.user_id}`);
+        }
       }
     } else {
       // Legacy token without prefix - check both tables for backwards compatibility
-      console.log(`🔍 SessionAuth Debug - Legacy token detected, checking both tables`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`🔍 SessionAuth Debug - Legacy token detected, checking both tables`);
+      }
       
       const adminSessionResult = await pool.query(`
         SELECT s.*, s.user_id, s.expires_at, s.is_active, 'admin' as session_type
@@ -134,7 +142,9 @@ const sessionAuth = async (req, res, next) => {
     };
 
     // Debug logging - show final user context
-    console.log(`🔍 SessionAuth Debug - Final user context: ${req.user.userType} user ${req.user.id} (${req.user.first_name} ${req.user.last_name})`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🔍 SessionAuth Debug - Final user context: ${req.user.userType} user ${req.user.id} (${req.user.first_name} ${req.user.last_name})`);
+    }
 
     next();
   } catch (error) {
