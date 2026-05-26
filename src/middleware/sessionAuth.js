@@ -270,4 +270,14 @@ const optionalSessionAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { sessionAuth, optionalSessionAuth };
+const requireMember = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  if (req.user.userType === 'admin' || req.user.userType === 'family_member') {
+    return next();
+  }
+  return res.status(403).json({ error: 'Member access required' });
+};
+
+module.exports = { sessionAuth, optionalSessionAuth, requireMember };

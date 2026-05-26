@@ -1,12 +1,19 @@
 const express = require('express');
 const submissionRepository = require('../repositories/submissionRepository');
 const adminRepository = require('../repositories/adminRepository');
-const { authenticateUser, requireAdmin, requireMember } = require('../middleware/memberAuth');
+const { sessionAuth, requireMember } = require('../middleware/sessionAuth');
 
 const router = express.Router();
 
+const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
 // Get all submissions (admin only)
-router.get('/', authenticateUser, requireAdmin, async (req, res) => {
+router.get('/', sessionAuth, requireAdmin, async (req, res) => {
   try {
     const submissions = await submissionRepository.getAllSubmissions();
     res.json(submissions);
@@ -17,16 +24,16 @@ router.get('/', authenticateUser, requireAdmin, async (req, res) => {
 });
 
 // Get current user's submissions
-router.get('/my-submissions', authenticateUser, requireMember, async (req, res) => {
+router.get('/my-submissions', sessionAuth, requireMember, async (req, res) => {
   try {
     let submissions;
-    
-    if (req.userType === 'family_member') {
+
+    if (req.user.userType === 'family_member') {
       submissions = await submissionRepository.getSubmissionsByFamilyMember(req.user.id);
     } else {
       submissions = await submissionRepository.getSubmissionsByUser(req.user.id);
     }
-    
+
     res.json(submissions);
   } catch (error) {
     console.error('Error fetching user submissions:', error);
@@ -35,7 +42,7 @@ router.get('/my-submissions', authenticateUser, requireMember, async (req, res) 
 });
 
 // Create new submission (both admin and family members)
-router.post('/', authenticateUser, requireMember, async (req, res) => {
+router.post('/', sessionAuth, requireMember, async (req, res) => {
   try {
     const { type, title, content } = req.body;
 
@@ -49,8 +56,8 @@ router.post('/', authenticateUser, requireMember, async (req, res) => {
     }
 
     let submission;
-    
-    if (req.userType === 'family_member') {
+
+    if (req.user.userType === 'family_member') {
       submission = await submissionRepository.createFamilyMemberSubmission(
         { type, title, content },
         req.user.id
@@ -64,11 +71,11 @@ router.post('/', authenticateUser, requireMember, async (req, res) => {
 
     // Log the submission creation
     await adminRepository.logAdminAction(
-      req.userType === 'admin' ? req.user.id : null,
+      req.user.userType === 'admin' ? req.user.id : null,
       'CREATE_SUBMISSION',
       'content_submission',
       submission.id,
-      { type, title, submitterType: req.userType },
+      { type, title, submitterType: req.user.userType },
       req.ip,
       req.get('User-Agent')
     );
@@ -84,7 +91,7 @@ router.post('/', authenticateUser, requireMember, async (req, res) => {
 });
 
 // Get submission by ID (admin only)
-router.get('/:id', authenticateUser, requireAdmin, async (req, res) => {
+router.get('/:id', sessionAuth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const submission = await submissionRepository.getSubmissionById(id);
@@ -101,7 +108,7 @@ router.get('/:id', authenticateUser, requireAdmin, async (req, res) => {
 });
 
 // Review submission (admin only)
-router.patch('/:id/review', authenticateUser, requireAdmin, async (req, res) => {
+router.patch('/:id/review', sessionAuth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, reviewNotes } = req.body;
@@ -111,9 +118,9 @@ router.patch('/:id/review', authenticateUser, requireAdmin, async (req, res) => 
     }
 
     const submission = await submissionRepository.updateSubmissionStatus(
-      id, 
-      status, 
-      req.user.id, 
+      id,
+      status,
+      req.user.id,
       reviewNotes
     );
 
@@ -175,7 +182,7 @@ router.patch('/:id/review', authenticateUser, requireAdmin, async (req, res) => 
 });
 
 // Delete submission (admin only or submission owner)
-router.delete('/:id', authenticateUser, requireMember, async (req, res) => {
+router.delete('/:id', sessionAuth, requireMember, async (req, res) => {
   try {
     const { id } = req.params;
     const submission = await submissionRepository.getSubmissionById(id);
@@ -185,9 +192,9 @@ router.delete('/:id', authenticateUser, requireMember, async (req, res) => {
     }
 
     // Check ownership or admin rights
-    const canDelete = req.userType === 'admin' || 
-                     (req.userType === 'family_member' && submission.submitted_by_family_member === req.user.id) ||
-                     (req.userType === 'user' && submission.submitted_by === req.user.id);
+    const canDelete = req.user.userType === 'admin' ||
+                     (req.user.userType === 'family_member' && submission.submitted_by_family_member === req.user.id) ||
+                     (req.user.userType === 'user' && submission.submitted_by === req.user.id);
 
     if (!canDelete) {
       return res.status(403).json({ error: 'Not authorized to delete this submission' });
@@ -202,7 +209,7 @@ router.delete('/:id', authenticateUser, requireMember, async (req, res) => {
 
     // Log the deletion
     await adminRepository.logAdminAction(
-      req.userType === 'admin' ? req.user.id : null,
+      req.user.userType === 'admin' ? req.user.id : null,
       'DELETE_SUBMISSION',
       'content_submission',
       id,
@@ -219,7 +226,7 @@ router.delete('/:id', authenticateUser, requireMember, async (req, res) => {
 });
 
 // Get submission statistics (admin only)
-router.get('/stats/overview', authenticateUser, requireAdmin, async (req, res) => {
+router.get('/stats/overview', sessionAuth, requireAdmin, async (req, res) => {
   try {
     const stats = await submissionRepository.getSubmissionStats();
     res.json(stats);
