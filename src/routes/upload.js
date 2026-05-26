@@ -1,22 +1,13 @@
 const express = require('express');
 const imagekitService = require('../services/imagekitService');
 const { sessionAuth } = require('../middleware/sessionAuth');
-const multer = require('multer');
 const router = express.Router();
-
-// Configure multer for file uploads
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB max
-  }
-});
 
 // Get ImageKit authentication parameters for client-side upload
 router.get('/auth', sessionAuth, async (req, res) => {
   try {
     const authParams = imagekitService.generateUploadAuth();
-    
+
     res.json({
       message: 'ImageKit authentication parameters generated',
       ...authParams,
@@ -25,41 +16,6 @@ router.get('/auth', sessionAuth, async (req, res) => {
   } catch (error) {
     console.error('ImageKit auth generation error:', error);
     res.status(500).json({ error: error.message || 'Failed to generate authentication' });
-  }
-});
-
-// Server-side file upload to ImageKit
-router.post('/:folder/upload', sessionAuth, upload.single('file'), async (req, res) => {
-  try {
-    const { folder } = req.params;
-    const file = req.file;
-
-    if (!file) {
-      return res.status(400).json({ error: 'No file provided' });
-    }
-
-    // Validate file type
-    if (!imagekitService.isAllowedFileType(file.mimetype)) {
-      return res.status(400).json({ error: 'File type not allowed' });
-    }
-
-    // Check file size limit
-    const sizeLimit = imagekitService.getFileSizeLimit(file.mimetype);
-    if (file.size > sizeLimit) {
-      return res.status(400).json({ 
-        error: `File size exceeds limit of ${Math.round(sizeLimit / (1024 * 1024))}MB` 
-      });
-    }
-
-    const uploadResult = await imagekitService.uploadFile(file, folder);
-
-    res.json({
-      message: 'File uploaded successfully',
-      file: uploadResult
-    });
-  } catch (error) {
-    console.error('File upload error:', error);
-    res.status(500).json({ error: error.message || 'Failed to upload file' });
   }
 });
 
