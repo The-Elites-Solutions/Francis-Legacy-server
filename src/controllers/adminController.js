@@ -39,8 +39,13 @@ class AdminController {
         return res.status(400).json({ error: 'User with this email already exists' });
       }
 
-      const tempPassword = crypto.randomBytes(8).toString('hex');
-      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      const providedPassword = req.body.password;
+      const password = (providedPassword && providedPassword.length >= 8)
+        ? providedPassword
+        : crypto.randomBytes(8).toString('hex');
+      const isGenerated = password !== providedPassword;
+
+      const hashedPassword = await bcrypt.hash(password, 10);
 
       const newUser = await userRepository.create({
         email,
@@ -54,7 +59,7 @@ class AdminController {
       });
 
       try {
-        await emailService.sendWelcomeEmail(email, firstName, tempPassword);
+        await emailService.sendWelcomeEmail(email, firstName, password);
       } catch (emailError) {
         console.error('Failed to send welcome email:', emailError);
       }
@@ -79,7 +84,8 @@ class AdminController {
           role: newUser.role,
           createdAt: newUser.created_at
         },
-        tempPassword: process.env.NODE_ENV === 'development' ? tempPassword : undefined
+        passwordGenerated: isGenerated,
+        tempPassword: process.env.NODE_ENV === 'development' ? password : undefined
       });
     } catch (error) {
       console.error('Error creating user:', error);
