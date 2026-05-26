@@ -124,19 +124,32 @@ router.patch('/:id/review', authenticateUser, requireAdmin, async (req, res) => 
     // If approved, create the actual content
     if (status === 'approved') {
       const content = submission.content;
-      
+
       try {
         if (submission.type === 'news') {
-          await submissionRepository.createNewsFromSubmission(content, submission.submitted_by || submission.submitted_by_family_member);
+          await submissionRepository.createNewsFromSubmission(content, submission.submitted_by || submission.submitted_by_family_member, id);
         } else if (submission.type === 'blog') {
-          await submissionRepository.createBlogFromSubmission(content, submission.submitted_by || submission.submitted_by_family_member);
+          await submissionRepository.createBlogFromSubmission(content, submission.submitted_by || submission.submitted_by_family_member, id);
         } else if (submission.type === 'archive') {
-          await submissionRepository.createArchiveFromSubmission(content, submission.submitted_by || submission.submitted_by_family_member, req.user.id);
+          await submissionRepository.createArchiveFromSubmission(content, submission.submitted_by || submission.submitted_by_family_member, req.user.id, id);
         }
       } catch (contentError) {
         console.error('Error creating approved content:', contentError);
         await submissionRepository.revertSubmissionStatus(id);
         return res.status(500).json({ error: 'Failed to create approved content' });
+      }
+    } else if (status === 'rejected') {
+      // Check if this submission was previously approved and has published content
+      const hasPublished = await submissionRepository.hasPublishedContent(id);
+
+      if (hasPublished) {
+        try {
+          await submissionRepository.deletePublishedContent(id);
+          console.log(`Deleted published content for rejected submission: ${id}`);
+        } catch (deleteError) {
+          console.error('Error deleting published content:', deleteError);
+          // Don't fail the rejection, but log the error
+        }
       }
     }
 
