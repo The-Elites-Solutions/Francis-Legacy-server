@@ -118,7 +118,9 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Rate limiter monitoring endpoint (development only)
+// Dev-only debug endpoint. Kept inline because it depends on the rate-limiter
+// instance constructed above; extracting to routes/ would require DI plumbing
+// for a tiny diagnostic surface. See L-S4 in AUDIT-REPORT.md.
 if (!isProduction) {
   app.get("/api/rate-limiter/stats", (req, res) => {
     res.json({
