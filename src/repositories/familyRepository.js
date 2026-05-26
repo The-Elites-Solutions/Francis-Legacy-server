@@ -170,7 +170,7 @@ class FamilyRepository {
   async updateOwnProfile(id, profileData) {
     const {
       firstName, lastName, maidenName, gender, birthDate,
-      birthPlace, occupation, biography, profilePhotoUrl
+      birthPlace, phone, occupation, biography, profilePhotoUrl
     } = profileData;
 
     // Helper function to convert empty strings to null for date fields
@@ -193,12 +193,13 @@ class FamilyRepository {
         birth_place = $6,
         occupation = $7,
         biography = $8,
-        profile_photo_url = $9,
+        phone = $9,
+        profile_photo_url = $10,
         updated_at = NOW()
-      WHERE id = $10
-      RETURNING 
+      WHERE id = $11
+      RETURNING
         id, first_name, last_name, maiden_name, gender, birth_date,
-        birth_place, occupation, biography, profile_photo_url,
+        birth_place, phone, occupation, biography, profile_photo_url,
         username, created_at, updated_at
     `, [
       firstName && firstName.trim() !== '' ? firstName.trim() : null,
@@ -209,6 +210,7 @@ class FamilyRepository {
       birthPlace && birthPlace.trim() !== '' ? birthPlace.trim() : null,
       occupation && occupation.trim() !== '' ? occupation.trim() : null,
       biography && biography.trim() !== '' ? biography.trim() : null,
+      phone && phone.trim() !== '' ? phone.trim() : null,
       profilePhotoUrl && profilePhotoUrl.trim() !== '' ? profilePhotoUrl.trim() : null,
       id
     ]);

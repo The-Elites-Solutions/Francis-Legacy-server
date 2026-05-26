@@ -316,7 +316,7 @@ class FamilyController {
 
       const {
         firstName, lastName, maidenName, gender, birthDate,
-        birthPlace, occupation, biography, profilePhotoUrl
+        birthPlace, phone, occupation, biography, profilePhotoUrl
       } = req.body;
 
       // Input validation
@@ -362,6 +362,7 @@ class FamilyController {
         gender,
         birthDate,
         birthPlace,
+        phone,
         occupation,
         biography,
         profilePhotoUrl
