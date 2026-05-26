@@ -71,6 +71,10 @@ class FamilyRepository {
     return result.rows[0];
   }
 
+  // TODO (L-S5): batch endpoint candidate — FamilyTreeEditor can issue up to 11
+  // sequential PUT calls per drag operation (spouse + child links). A single
+  // PATCH /api/family/relationships batch endpoint here would replace them.
+  // Deferred: no UI consumer yet. See L-S5 in AUDIT-REPORT.md.
   async update(id, memberData) {
     const {
       firstName, lastName, maidenName, gender, birthDate, deathDate,
